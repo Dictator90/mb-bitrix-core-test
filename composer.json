@@ -1,0 +1,61 @@
+{
+  "name": "mb4it/bitrix-core-test",
+  "description": "1C-Bitrix core distribution and test bootstrap (prolog/epilog, SQLite) for package integration tests.",
+  "type": "library",
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "^8.2",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "ext-pdo_sqlite": "*",
+    "ext-zip": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "authors": [
+    {
+      "name": "Maxim Bezvodinskikh",
+      "email": "m.bezvodinskikh@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "MB\\BitrixTest\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MB\\BitrixTest\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "bitrix-core-test": {
+      "source": "download",
+      "edition": "business",
+      "version_policy": "warn",
+      "install_path": "bitrix",
+      "force": false,
+      "apply_filter": false
+    }
+  },
+  "scripts": {
+    "bitrix-core:install": "@php scripts/composer/install-command.php",
+    "bitrix-core:generate-sqlite-dumps": "@php scripts/sqlite/generate-dumps.php",
+    "post-install-cmd": [
+      "@composer run-script --timeout=0 bitrix-core:install"
+    ],
+    "post-update-cmd": [
+      "@composer run-script --timeout=0 bitrix-core:install"
+    ],
+    "test": "phpunit --testsuite default",
+    "test:integration": "phpunit --testsuite integration"
+  },
+  "config": {
+    "allow-plugins": {
+      "*": true
+    }
+  }
+}

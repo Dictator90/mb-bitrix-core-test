@@ -1,0 +1,9 @@
+.idea/
+/vendor/
+/bitrix/
+/.cache/
+/tests/.runtime/
+.runtime/
+*.sqlite
+composer.lock
+.phpunit.cache

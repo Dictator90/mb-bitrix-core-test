@@ -1,0 +1,18 @@
+{
+  "start": {
+    "label": "1C-Bitrix: Старт",
+    "url": "https://www.1c-bitrix.ru/download/start_encode.tar.gz"
+  },
+  "standard": {
+    "label": "1C-Bitrix: Стандарт",
+    "url": "https://www.1c-bitrix.ru/download/standard_encode.tar.gz"
+  },
+  "small_business": {
+    "label": "1C-Bitrix: Малый бизнес",
+    "url": "https://www.1c-bitrix.ru/download/small_business_encode.tar.gz"
+  },
+  "business": {
+    "label": "1C-Bitrix: Бизнес",
+    "url": "https://www.1c-bitrix.ru/download/business_encode.tar.gz"
+  }
+}

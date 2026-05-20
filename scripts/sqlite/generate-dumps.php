@@ -2,30 +2,28 @@
 
 declare(strict_types=1);
 
+spl_autoload_register(static function (string $class): void {
+    $prefix = 'MB\\BitrixTest\\';
+    if (! str_starts_with($class, $prefix)) {
+        return;
+    }
+
+    $relativePath = str_replace('\\', '/', substr($class, strlen($prefix)));
+    $file = dirname(__DIR__, 2) . '/src/' . $relativePath . '.php';
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
+
 use MB\BitrixTest\Bootstrap\PrologBootstrap;
 use MB\BitrixTest\Install\InstalledCore;
-
-$autoloadCandidates = [
-    (getcwd() ?: '') . '/vendor/autoload.php',
-    dirname(__DIR__, 2) . '/vendor/autoload.php',
-];
-$autoloadLoaded = false;
-foreach ($autoloadCandidates as $autoloadPath) {
-    if (is_file($autoloadPath)) {
-        require_once $autoloadPath;
-        $autoloadLoaded = true;
-        break;
-    }
-}
-if (! $autoloadLoaded) {
-    throw new RuntimeException('Composer autoload.php not found.');
-}
 
 $projectRoot = dirname(__DIR__, 2);
 $schemaDir = $projectRoot . '/resources/schema';
 $runtimeRoot = $projectRoot . '/.runtime/dump-build';
-$baseDbPath = $runtimeRoot . '/base.sqlite';
-$shopDbPath = $runtimeRoot . '/shop.sqlite';
+$runId = date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+$baseDbPath = $runtimeRoot . '/base_' . $runId . '.sqlite';
+$shopDbPath = $runtimeRoot . '/shop_' . $runId . '.sqlite';
 
 if (! is_dir($schemaDir)) {
     mkdir($schemaDir, 0777, true);
@@ -47,6 +45,7 @@ buildDatabase(
     false
 );
 dumpSqliteDatabase($baseDbPath, $schemaDir . '/sqlite-base.sql');
+appendRequiredModulesDump($schemaDir . '/sqlite-base.sql');
 
 buildDatabase(
     $corePath,
@@ -56,6 +55,8 @@ buildDatabase(
     true
 );
 dumpSqliteDatabase($shopDbPath, $schemaDir . '/sqlite-shop.sql');
+appendRequiredModulesDump($schemaDir . '/sqlite-shop.sql');
+appendEshopShopDataDump($schemaDir . '/sqlite-shop.sql', $corePath);
 
 echo "Generated:\n";
 echo " - " . $schemaDir . "/sqlite-base.sql\n";
@@ -68,10 +69,6 @@ function buildDatabase(
     string $mode,
     bool $importShopXml
 ): void {
-    if (is_file($sqlitePath)) {
-        unlink($sqlitePath);
-    }
-
     PrologBootstrap::reset();
     putenv('BITRIX_BOOTSTRAP_MODE=full');
     putenv('BITRIX_USE_SQLITE=1');
@@ -154,4 +151,252 @@ function sqliteValue(mixed $value): string
     }
 
     return "'" . str_replace("'", "''", (string) $value) . "'";
+}
+
+function appendRequiredModulesDump(string $sqlPath): void
+{
+    $now = date('Y-m-d H:i:s');
+    $modules = [
+        'main',
+        'iblock',
+        'catalog',
+        'sale',
+        'highloadblock',
+        'fileman',
+        'location',
+        'perform',
+        'security',
+        'rest',
+        'seo',
+        'ui',
+        'search',
+    ];
+
+    $lines = [];
+    $lines[] = '';
+    $lines[] = '-- Required core modules';
+    foreach ($modules as $moduleId) {
+        $moduleSql = sqliteValue($moduleId);
+        $lines[] = "INSERT OR IGNORE INTO b_module (ID, DATE_ACTIVE) VALUES ({$moduleSql}, '{$now}');";
+    }
+    $lines[] = '';
+
+    file_put_contents($sqlPath, implode(PHP_EOL, $lines), FILE_APPEND);
+}
+
+function appendEshopShopDataDump(string $shopSqlPath, string $corePath): void
+{
+    $catalogXml = $corePath . '/modules/bitrix.eshop/install/wizards/bitrix/eshop/site/services/iblock/xml/ru/catalog.xml';
+    $offersXml = $corePath . '/modules/bitrix.eshop/install/public/xml/ru/catalog_sku.xml';
+    $catalogPricesXml = $corePath . '/modules/bitrix.eshop/install/wizards/bitrix/eshop/site/services/iblock/xml/ru/catalog_prices.xml';
+    $offersPricesXml = $corePath . '/modules/bitrix.eshop/install/public/xml/ru/catalog_prices_sku.xml';
+
+    $catalogRows = is_file($catalogXml) ? parseCommerceXmlElements($catalogXml) : [];
+    $offerRows = is_file($offersXml) ? parseCommerceXmlElements($offersXml) : [];
+    $sections = is_file($catalogXml) ? parseCommerceXmlGroups($catalogXml) : [];
+    $prices = [];
+    if (is_file($catalogPricesXml)) {
+        $prices = array_merge($prices, parseCommerceXmlPrices($catalogPricesXml));
+    }
+    if (is_file($offersPricesXml)) {
+        $prices = array_merge($prices, parseCommerceXmlPrices($offersPricesXml));
+    }
+
+    if (getenv('BITRIX_DUMP_DEBUG') === '1') {
+        echo "Shop XML append: corePath={$corePath}, sections=" . count($sections) . ", catalog=" . count($catalogRows) . ", offers=" . count($offerRows) . ", prices=" . count($prices) . PHP_EOL;
+    }
+
+    if ($catalogRows === [] && $offerRows === []) {
+        return;
+    }
+
+    $now = date('Y-m-d H:i:s');
+    $lines = [];
+    $lines[] = '';
+    $lines[] = '-- Appended from bitrix.eshop XML for shop mode (sections, products, offers, prices)';
+
+    $lines[] = 'CREATE TABLE IF NOT EXISTS b_catalog_group (ID INTEGER PRIMARY KEY, NAME TEXT, BASE TEXT DEFAULT \'N\', SORT INTEGER DEFAULT 100, XML_ID TEXT);';
+    $lines[] = 'CREATE TABLE IF NOT EXISTS b_catalog_product (ID INTEGER PRIMARY KEY, QUANTITY REAL NOT NULL DEFAULT 0, QUANTITY_TRACE CHAR(1) NOT NULL DEFAULT \'N\', WEIGHT REAL NOT NULL DEFAULT 0, TIMESTAMP_X TEXT NOT NULL, PRICE_TYPE CHAR(1) NOT NULL DEFAULT \'S\', RECUR_SCHEME_TYPE CHAR(1) NOT NULL DEFAULT \'D\', WITHOUT_ORDER CHAR(1) NOT NULL DEFAULT \'N\', SELECT_BEST_PRICE CHAR(1) NOT NULL DEFAULT \'Y\', VAT_ID INTEGER NULL DEFAULT 0, VAT_INCLUDED CHAR(1) NULL DEFAULT \'Y\', CAN_BUY_ZERO CHAR(1) NOT NULL DEFAULT \'N\', NEGATIVE_AMOUNT_TRACE CHAR(1) NOT NULL DEFAULT \'D\', BARCODE_MULTI CHAR(1) NOT NULL DEFAULT \'N\', QUANTITY_RESERVED REAL NULL DEFAULT 0, TYPE INTEGER NULL DEFAULT 1, AVAILABLE CHAR(1) NULL DEFAULT \'Y\', BUNDLE CHAR(1) NULL DEFAULT \'N\');';
+    $lines[] = 'CREATE TABLE IF NOT EXISTS b_catalog_price (ID INTEGER PRIMARY KEY AUTOINCREMENT, PRODUCT_ID INTEGER NOT NULL, EXTRA_ID INTEGER NULL, CATALOG_GROUP_ID INTEGER NOT NULL, PRICE REAL NOT NULL, CURRENCY TEXT NOT NULL DEFAULT \'RUB\', TIMESTAMP_X TEXT NOT NULL, QUANTITY_FROM INTEGER NULL, QUANTITY_TO INTEGER NULL);';
+    $lines[] = "INSERT OR IGNORE INTO b_catalog_group (ID, NAME, BASE, SORT, XML_ID) VALUES (1, 'Base price', 'Y', 100, 'BASE');";
+
+    $sectionIdByXml = [];
+    $nextSectionId = 10000;
+    foreach ($sections as $section) {
+        $xmlId = (string) $section['xml_id'];
+        if ($xmlId === '') {
+            continue;
+        }
+        $sectionIdByXml[$xmlId] = $nextSectionId;
+        $name = sqliteValue($section['name']);
+        $code = sqliteValue($section['code']);
+        $xmlSql = sqliteValue($xmlId);
+        $sort = (int) $section['sort'];
+        $left = ($nextSectionId - 9999) * 2;
+        $right = $left + 1;
+        $lines[] = "INSERT INTO b_iblock_section (ID, TIMESTAMP_X, IBLOCK_ID, ACTIVE, GLOBAL_ACTIVE, SORT, NAME, LEFT_MARGIN, RIGHT_MARGIN, DEPTH_LEVEL, CODE, XML_ID, DESCRIPTION_TYPE) VALUES ({$nextSectionId}, '{$now}', 1, 'Y', 'Y', {$sort}, {$name}, {$left}, {$right}, 1, {$code}, {$xmlSql}, 'text');";
+        $nextSectionId++;
+    }
+
+    $nextElementId = 20000;
+    $allRows = array_merge($catalogRows, $offerRows);
+    foreach ($allRows as $row) {
+        $xmlId = (string) $row['xml_id'];
+        $name = sqliteValue($row['name']);
+        $xmlSql = sqliteValue($xmlId);
+        $code = sqliteValue($row['code']);
+        $sort = (int) $row['sort'];
+        $sectionXml = (string) ($row['group_xml_id'] ?? '');
+        $sectionId = $sectionXml !== '' && isset($sectionIdByXml[$sectionXml]) ? (int) $sectionIdByXml[$sectionXml] : 'NULL';
+        $lines[] = "INSERT INTO b_iblock_element (ID, TIMESTAMP_X, DATE_CREATE, IBLOCK_ID, IBLOCK_SECTION_ID, ACTIVE, SORT, NAME, PREVIEW_TEXT_TYPE, DETAIL_TEXT_TYPE, CODE, XML_ID, SHOW_COUNTER) VALUES ({$nextElementId}, '{$now}', '{$now}', 1, {$sectionId}, 'Y', {$sort}, {$name}, 'text', 'text', {$code}, {$xmlSql}, 0);";
+        $lines[] = "INSERT OR IGNORE INTO b_catalog_product (ID, QUANTITY, TIMESTAMP_X, PRICE_TYPE, RECUR_SCHEME_TYPE, WITHOUT_ORDER, SELECT_BEST_PRICE, CAN_BUY_ZERO, NEGATIVE_AMOUNT_TRACE, BARCODE_MULTI, TYPE, AVAILABLE, BUNDLE) VALUES ({$nextElementId}, 100, '{$now}', 'S', 'D', 'N', 'Y', 'N', 'D', 'N', 1, 'Y', 'N');";
+        if (isset($prices[$xmlId])) {
+            $price = (float) $prices[$xmlId]['price'];
+            $currency = sqliteValue($prices[$xmlId]['currency']);
+            $lines[] = "INSERT INTO b_catalog_price (PRODUCT_ID, EXTRA_ID, CATALOG_GROUP_ID, PRICE, CURRENCY, TIMESTAMP_X, QUANTITY_FROM, QUANTITY_TO) VALUES ({$nextElementId}, NULL, 1, {$price}, {$currency}, '{$now}', NULL, NULL);";
+        }
+        $nextElementId++;
+    }
+
+    file_put_contents($shopSqlPath, implode(PHP_EOL, $lines) . PHP_EOL, FILE_APPEND);
+}
+
+/**
+ * @return list<array{name:string,xml_id:string,code:string,sort:int,group_xml_id?:string}>
+ */
+function parseCommerceXmlElements(string $xmlFile): array
+{
+    $raw = (string) file_get_contents($xmlFile);
+    if ($raw === '') {
+        return [];
+    }
+
+    $utf8 = mb_convert_encoding($raw, 'UTF-8', 'Windows-1251,UTF-8');
+    $result = [];
+    $sort = 100;
+    if (! preg_match_all('/<Товар>(.*?)<\/Товар>/su', $utf8, $blocks)) {
+        return [];
+    }
+
+    foreach ($blocks[1] as $block) {
+        if (! preg_match('/<Ид>(.*?)<\/Ид>/su', $block, $idMatch)) {
+            continue;
+        }
+        if (! preg_match('/<Наименование>(.*?)<\/Наименование>/su', $block, $nameMatch)) {
+            continue;
+        }
+
+        $xmlId = trim(html_entity_decode(strip_tags($idMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $name = trim(html_entity_decode(strip_tags($nameMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($xmlId === '' || $name === '') {
+            continue;
+        }
+
+        $code = preg_replace('/[^a-z0-9]+/i', '-', mb_strtolower($name)) ?: 'item-' . $sort;
+        $code = trim($code, '-');
+        if ($code === '') {
+            $code = 'item-' . $sort;
+        }
+
+        $groupXmlId = '';
+        if (preg_match('/<Группы>.*?<Ид>(.*?)<\/Ид>.*?<\/Группы>/su', $block, $groupMatch)) {
+            $groupXmlId = trim(html_entity_decode(strip_tags($groupMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        }
+
+        $result[] = [
+            'name' => $name,
+            'xml_id' => $xmlId,
+            'code' => $code,
+            'sort' => $sort,
+            'group_xml_id' => $groupXmlId,
+        ];
+        $sort += 10;
+    }
+
+    return $result;
+}
+
+/**
+ * @return list<array{name:string,xml_id:string,code:string,sort:int}>
+ */
+function parseCommerceXmlGroups(string $xmlFile): array
+{
+    $raw = (string) file_get_contents($xmlFile);
+    if ($raw === '') {
+        return [];
+    }
+
+    $utf8 = mb_convert_encoding($raw, 'UTF-8', 'Windows-1251,UTF-8');
+    if (! preg_match_all('/<Группа>(.*?)<\/Группа>/su', $utf8, $blocks)) {
+        return [];
+    }
+
+    $result = [];
+    $sort = 100;
+    foreach ($blocks[1] as $block) {
+        if (! preg_match('/<Ид>(.*?)<\/Ид>/su', $block, $idMatch)) {
+            continue;
+        }
+        if (! preg_match('/<Наименование>(.*?)<\/Наименование>/su', $block, $nameMatch)) {
+            continue;
+        }
+        $xmlId = trim(html_entity_decode(strip_tags($idMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $name = trim(html_entity_decode(strip_tags($nameMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($xmlId === '' || $name === '') {
+            continue;
+        }
+        $code = preg_replace('/[^a-z0-9]+/i', '-', mb_strtolower($name)) ?: 'section-' . $sort;
+        $code = trim((string) $code, '-');
+        if ($code === '') {
+            $code = 'section-' . $sort;
+        }
+        $result[] = ['name' => $name, 'xml_id' => $xmlId, 'code' => $code, 'sort' => $sort];
+        $sort += 10;
+    }
+
+    return $result;
+}
+
+/**
+ * @return array<string,array{price:float,currency:string}>
+ */
+function parseCommerceXmlPrices(string $xmlFile): array
+{
+    $raw = (string) file_get_contents($xmlFile);
+    if ($raw === '') {
+        return [];
+    }
+
+    $utf8 = mb_convert_encoding($raw, 'UTF-8', 'Windows-1251,UTF-8');
+    if (! preg_match_all('/<Товар>(.*?)<\/Товар>/su', $utf8, $blocks)) {
+        return [];
+    }
+
+    $result = [];
+    foreach ($blocks[1] as $block) {
+        if (! preg_match('/<Ид>(.*?)<\/Ид>/su', $block, $idMatch)) {
+            continue;
+        }
+        if (! preg_match('/<ЦенаЗаЕдиницу>(.*?)<\/ЦенаЗаЕдиницу>/su', $block, $priceMatch)) {
+            continue;
+        }
+        $xmlId = trim(html_entity_decode(strip_tags($idMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $priceRaw = trim(str_replace(',', '.', html_entity_decode(strip_tags($priceMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        if ($xmlId === '' || $priceRaw === '' || ! is_numeric($priceRaw)) {
+            continue;
+        }
+        $currency = 'RUB';
+        if (preg_match('/<Валюта>(.*?)<\/Валюта>/su', $block, $currencyMatch)) {
+            $currencyParsed = trim(html_entity_decode(strip_tags($currencyMatch[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if ($currencyParsed !== '') {
+                $currency = $currencyParsed;
+            }
+        }
+        $result[$xmlId] = [
+            'price' => (float) $priceRaw,
+            'currency' => $currency,
+        ];
+    }
+
+    return $result;
 }

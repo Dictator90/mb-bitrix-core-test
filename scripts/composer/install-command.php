@@ -15,4 +15,4 @@ spl_autoload_register(static function (string $class) use ($packageRoot): void {
     }
 });
 
-exit(\MB\BitrixTest\Install\InstallCommand::run());
+exit(\MB\BitrixTest\Command\InstallCommand::run());

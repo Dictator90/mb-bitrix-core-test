@@ -66,9 +66,22 @@ final class ConfigResolver
 
     private static function detectConsumerRoot(string $packageRoot): ?string
     {
-        $vendorParent = dirname($packageRoot, 2);
-        if (is_dir($vendorParent . DIRECTORY_SEPARATOR . 'vendor')) {
-            return $vendorParent;
+        return self::findComposerRoot(dirname($packageRoot));
+    }
+
+    private static function findComposerRoot(string $start): ?string
+    {
+        $dir = realpath($start) ?: $start;
+
+        while ($dir !== dirname($dir)) {
+            if (
+                is_file($dir . DIRECTORY_SEPARATOR . 'composer.json')
+                && is_dir($dir . DIRECTORY_SEPARATOR . 'vendor')
+            ) {
+                return $dir;
+            }
+
+            $dir = dirname($dir);
         }
 
         return null;
@@ -101,12 +114,12 @@ final class ConfigResolver
      */
     private static function readComposerExtra(string $composerJsonPath): array
     {
-        if (! is_file($composerJsonPath)) {
+        if (!is_file($composerJsonPath)) {
             return [];
         }
 
         $data = json_decode((string) file_get_contents($composerJsonPath), true);
-        if (! is_array($data)) {
+        if (!is_array($data)) {
             return [];
         }
 

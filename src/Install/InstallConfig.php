@@ -15,9 +15,6 @@ final readonly class InstallConfig
     public const POLICY_STRICT = 'strict';
     public const POLICY_IGNORE = 'ignore';
 
-    /**
-     * @param array<string, mixed> $raw
-     */
     public function __construct(
         public string $source,
         public ?string $edition,
@@ -30,7 +27,8 @@ final readonly class InstallConfig
         public ?string $downloadUrl,
         public string $packageRoot,
         public ?string $consumerRoot,
-    ) {}
+    ) {
+    }
 
     public function bitrixInstallDir(): string
     {

@@ -45,7 +45,7 @@ return [
     'connections' => [
         'value' => [
             'default' => [
-                'className' => '\\MB\\BitrixTest\\Database\\SqlLiteConnection',
+                'className' => '\\MB\\BitrixTest\\Database\\SqliteConnection',
                 'host' => '',
                 'database' => '__SQLITE_PATH__',
                 'login' => '',

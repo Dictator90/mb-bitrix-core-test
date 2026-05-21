@@ -8,8 +8,9 @@ final class EshopDemoInstaller
 {
     public static function installFromCore(string $corePath, string $siteId = 's1', string $shopLocalization = 'ru'): void
     {
-        if (! self::hasRequiredTables()) {
+        if (!self::hasRequiredTables()) {
             self::report('Skipped: required catalog/shop tables are missing in SQLite (core MySQL SQL is not fully portable).');
+
             return;
         }
 
@@ -37,20 +38,20 @@ final class EshopDemoInstaller
             require_once $wizardUtils;
         }
 
-        if (! defined('B_PROLOG_INCLUDED')) {
+        if (!defined('B_PROLOG_INCLUDED')) {
             define('B_PROLOG_INCLUDED', true);
         }
-        if (! defined('WIZARD_SITE_ID')) {
+        if (!defined('WIZARD_SITE_ID')) {
             define('WIZARD_SITE_ID', $siteId);
         }
-        if (! defined('WIZARD_INSTALL_DEMO_DATA')) {
+        if (!defined('WIZARD_INSTALL_DEMO_DATA')) {
             define('WIZARD_INSTALL_DEMO_DATA', true);
         }
-        if (! defined('WIZARD_SERVICE_RELATIVE_PATH')) {
+        if (!defined('WIZARD_SERVICE_RELATIVE_PATH')) {
             define('WIZARD_SERVICE_RELATIVE_PATH', $wizardBase);
         }
 
-        if (! isset($GLOBALS['wizard']) || ! is_object($GLOBALS['wizard'])) {
+        if (!isset($GLOBALS['wizard']) || !is_object($GLOBALS['wizard'])) {
             $GLOBALS['wizard'] = new class ($shopLocalization) {
                 public function __construct(private readonly string $shopLocalization)
                 {
@@ -75,7 +76,7 @@ final class EshopDemoInstaller
                 . $wizardBase
                 . DIRECTORY_SEPARATOR
                 . $wizardFile;
-            if (! is_file($absolutePath)) {
+            if (!is_file($absolutePath)) {
                 continue;
             }
 
@@ -91,6 +92,9 @@ final class EshopDemoInstaller
     private static function hasRequiredTables(): bool
     {
         $connection = \Bitrix\Main\Application::getConnection();
+        if (!$connection instanceof \Bitrix\Main\DB\Connection) {
+            return false;
+        }
         $requiredTables = [
             'b_iblock',
             'b_iblock_element',
@@ -100,7 +104,7 @@ final class EshopDemoInstaller
         ];
 
         foreach ($requiredTables as $tableName) {
-            if (! self::tableExists($connection, $tableName)) {
+            if (!self::tableExists($connection, $tableName)) {
                 return false;
             }
         }
@@ -112,6 +116,7 @@ final class EshopDemoInstaller
     {
         try {
             $connection->query('SELECT 1 FROM ' . $tableName . ' LIMIT 1');
+
             return true;
         } catch (\Throwable) {
             return false;
@@ -125,12 +130,12 @@ final class EshopDemoInstaller
         }
 
         $runtimeRoot = getenv('BITRIX_RUNTIME_ROOT');
-        if (! is_string($runtimeRoot) || $runtimeRoot === '') {
+        if (!is_string($runtimeRoot) || $runtimeRoot === '') {
             return;
         }
 
         $reportDir = rtrim($runtimeRoot, '/\\') . DIRECTORY_SEPARATOR . 'logs';
-        if (! is_dir($reportDir)) {
+        if (!is_dir($reportDir)) {
             mkdir($reportDir, 0777, true);
         }
 

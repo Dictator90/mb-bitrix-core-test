@@ -10,7 +10,7 @@ use Bitrix\Iblock\SectionTable;
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use Bitrix\Main\ModuleTable;
-use MB\BitrixTest\Database\SqlLiteConnection;
+use MB\BitrixTest\Database\SqliteConnection;
 use MB\BitrixTest\Tests\Support\BitrixIntegrationTestCase;
 
 final class DatabaseOrmIntegrationTest extends BitrixIntegrationTestCase
@@ -18,7 +18,7 @@ final class DatabaseOrmIntegrationTest extends BitrixIntegrationTestCase
     public function testDefaultConnectionIsSqliteAndResponds(): void
     {
         $connection = Application::getConnection();
-        $this->assertInstanceOf(SqlLiteConnection::class, $connection);
+        $this->assertInstanceOf(SqliteConnection::class, $connection);
         $this->assertTrue($connection->isConnected());
         $this->assertSame('sqlite', $connection->getType());
 

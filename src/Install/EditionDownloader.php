@@ -21,13 +21,13 @@ final class EditionDownloader
             $url = $entry['url'];
         }
 
-        if (! is_dir($config->cacheDir()) && ! mkdir($config->cacheDir(), 0777, true) && ! is_dir($config->cacheDir())) {
+        if (!is_dir($config->cacheDir()) && !mkdir($config->cacheDir(), 0777, true) && !is_dir($config->cacheDir())) {
             throw new RuntimeException('Unable to create cache dir: ' . $config->cacheDir());
         }
 
         $cacheFile = $config->cacheDir() . DIRECTORY_SEPARATOR . md5($url) . '.tar.gz';
 
-        if ($config->force || ! is_file($cacheFile) || filesize($cacheFile) === 0) {
+        if ($config->force || !is_file($cacheFile) || filesize($cacheFile) === 0) {
             self::downloadFile($url, $cacheFile);
         }
 
@@ -42,13 +42,15 @@ final class EditionDownloader
         $bitrixRoot = self::findBitrixRoot($staging);
         if ($bitrixRoot === null) {
             CoreFilter::removeDirectory($staging);
+
             throw new RuntimeException('Could not find bitrix/modules/main in downloaded archive');
         }
 
         $versionFile = $bitrixRoot . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'main'
             . DIRECTORY_SEPARATOR . 'classes' . DIRECTORY_SEPARATOR . 'general' . DIRECTORY_SEPARATOR . 'version.php';
-        if (! is_file($versionFile)) {
+        if (!is_file($versionFile)) {
             CoreFilter::removeDirectory($staging);
+
             throw new RuntimeException('Incomplete archive: version.php not found. Re-run with BITRIX_CORE_FORCE=1');
         }
 
@@ -59,7 +61,7 @@ final class EditionDownloader
 
         mkdir(dirname($installDir), 0777, true);
 
-        if (! @rename($bitrixRoot, $installDir)) {
+        if (!@rename($bitrixRoot, $installDir)) {
             CoreFilter::copyFiltered($bitrixRoot, $installDir);
             CoreFilter::removeDirectory($bitrixRoot);
         }
@@ -106,6 +108,7 @@ final class EditionDownloader
         $out = fopen($target, 'wb');
         if ($out === false) {
             fclose($stream);
+
             throw new RuntimeException('Failed to write: ' . $target);
         }
 
@@ -113,7 +116,7 @@ final class EditionDownloader
         fclose($stream);
         fclose($out);
 
-        if (! is_file($target) || filesize($target) === 0) {
+        if (!is_file($target) || filesize($target) === 0) {
             throw new RuntimeException('Downloaded file is empty: ' . $target);
         }
     }

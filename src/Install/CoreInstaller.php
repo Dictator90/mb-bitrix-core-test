@@ -21,35 +21,17 @@ final class CoreInstaller
         $installDir = $config->bitrixInstallDir();
         $existingMeta = is_dir($installDir) ? InstalledCore::readMeta($installDir) : null;
 
-        if (! $config->force && $existingMeta !== null && self::isUpToDate($config, $existingMeta)) {
+        if (!$config->force && $existingMeta !== null && self::isUpToDate($config, $existingMeta)) {
             fwrite(STDOUT, "bitrix-core-test: core already installed ({$existingMeta['sm_version']})\n");
 
             return 0;
         }
 
-        $downloadUrl = null;
+        $resolver = new \MB\BitrixTest\Install\Source\CoreSourceInstallerResolver();
+        $installer = $resolver->resolve($config->source);
+        $downloadUrl = $installer->install($config);
 
-        match ($config->source) {
-            InstallConfig::SOURCE_DOWNLOAD => $downloadUrl = EditionDownloader::downloadAndExtract($config),
-            InstallConfig::SOURCE_BUNDLED => self::installBundled($config),
-            InstallConfig::SOURCE_LOCAL => self::installLocal($config),
-            default => throw new RuntimeException('Unknown source: ' . $config->source),
-        };
-
-        if ($config->applyFilter) {
-            if (
-                $config->source === InstallConfig::SOURCE_LOCAL
-                && $config->localPath !== null
-            ) {
-                $localResolved = self::resolveLocalPath($config);
-                if (CorePathGuard::sharesRealPath($installDir, $localResolved)) {
-                    throw new RuntimeException(
-                        'Refusing to apply core filter: install directory is a link to the local source. '
-                        . 'Use apply_filter: true only with copy mode, or apply_filter: false with junction.'
-                    );
-                }
-            }
-
+        if ($config->applyFilter && $config->source !== InstallConfig::SOURCE_LOCAL) {
             CoreFilter::apply($installDir);
         }
 
@@ -110,127 +92,6 @@ final class CoreInstaller
         }
 
         return is_dir($config->bitrixInstallDir() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'main');
-    }
-
-    private static function installBundled(InstallConfig $config): void
-    {
-        $release = CoreManifest::resolve($config->archivesDir(), $config->version);
-        $zipPath = $config->archivesDir() . DIRECTORY_SEPARATOR . $release['archive'];
-
-        if (! is_file($zipPath)) {
-            throw new RuntimeException(
-                "Bundled archive missing: {$zipPath}. Use git-lfs pull or source=download."
-            );
-        }
-
-        CoreManifest::extractZip($zipPath, $config->bitrixInstallDir(), $release['sha256']);
-        $config->version ??= $release['version'];
-    }
-
-    private static function installLocal(InstallConfig $config): void
-    {
-        $localPath = $config->localPath;
-        if ($localPath === null) {
-            throw new RuntimeException('local_path or BITRIX_CORE_PATH is required for source=local');
-        }
-
-        if (! str_starts_with($localPath, '/') && ! preg_match('#^[A-Za-z]:[\\\\/]#', $localPath)) {
-            $base = $config->consumerRoot ?? $config->packageRoot;
-            $localPath = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $localPath);
-        }
-
-        $localPath = realpath($localPath);
-        if ($localPath === false || ! is_dir($localPath)) {
-            throw new RuntimeException('Local Bitrix path not found');
-        }
-
-        CorePathGuard::assertSafeLocalSource($localPath, $config->packageRoot);
-
-        $installDir = $config->bitrixInstallDir();
-        if (is_dir($installDir)) {
-            if (is_link($installDir) || self::isJunction($installDir)) {
-                self::unlinkPath($installDir);
-            } else {
-                CoreFilter::removeDirectory($installDir);
-            }
-        }
-
-        if ($config->applyFilter) {
-            CoreFilter::copyFiltered($localPath, $installDir);
-        } else {
-            self::linkDirectory($localPath, $installDir);
-        }
-    }
-
-    private static function isJunction(string $path): bool
-    {
-        if (DIRECTORY_SEPARATOR !== '\\' || ! is_dir($path)) {
-            return false;
-        }
-
-        exec(sprintf('cmd /c dir %s | find "<JUNCTION>"', escapeshellarg($path)), $output, $code);
-
-        return $code === 0 && $output !== [];
-    }
-
-    private static function unlinkPath(string $path): void
-    {
-        if (is_link($path)) {
-            unlink($path);
-
-            return;
-        }
-
-        if (DIRECTORY_SEPARATOR === '\\' && is_dir($path)) {
-            exec(sprintf('cmd /c rmdir "%s"', str_replace('/', '\\', $path)));
-
-            return;
-        }
-
-        rmdir($path);
-    }
-
-    private static function linkDirectory(string $target, string $link): void
-    {
-        $parent = dirname($link);
-        if (! is_dir($parent)) {
-            mkdir($parent, 0777, true);
-        }
-
-        if (@symlink($target, $link)) {
-            return;
-        }
-
-        if (DIRECTORY_SEPARATOR === '\\') {
-            $targetWin = str_replace('/', '\\', $target);
-            $linkWin = str_replace('/', '\\', $link);
-            exec(sprintf('cmd /c mklink /J "%s" "%s"', $linkWin, $targetWin), $output, $exitCode);
-            if ($exitCode === 0 || is_dir($link)) {
-                return;
-            }
-        }
-
-        throw new RuntimeException('Unable to link local Bitrix core to ' . $link);
-    }
-
-    private static function resolveLocalPath(InstallConfig $config): string
-    {
-        $localPath = $config->localPath;
-        if ($localPath === null) {
-            throw new RuntimeException('local_path is required');
-        }
-
-        if (! str_starts_with($localPath, '/') && ! preg_match('#^[A-Za-z]:[\\\\/]#', $localPath)) {
-            $base = $config->consumerRoot ?? $config->packageRoot;
-            $localPath = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $localPath);
-        }
-
-        $resolved = realpath($localPath);
-        if ($resolved === false) {
-            throw new RuntimeException('Local Bitrix path not found');
-        }
-
-        return $resolved;
     }
 
     private static function assertVersionPolicy(InstallConfig $config, string $smVersion): void

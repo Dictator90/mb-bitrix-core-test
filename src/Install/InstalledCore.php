@@ -14,7 +14,7 @@ final class InstalledCore
         $config = ConfigResolver::resolve($packageRoot);
         $path = $config->bitrixInstallDir();
 
-        if (! is_dir($path . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'main')) {
+        if (!is_dir($path . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'main')) {
             throw new RuntimeException(
                 'Bitrix core is not installed. Run: composer bitrix-core:install'
             );
@@ -29,7 +29,7 @@ final class InstalledCore
     public static function readMeta(string $bitrixRoot): ?array
     {
         $file = $bitrixRoot . DIRECTORY_SEPARATOR . '.core-test.json';
-        if (! is_file($file)) {
+        if (!is_file($file)) {
             return null;
         }
 
@@ -46,13 +46,12 @@ final class InstalledCore
             . DIRECTORY_SEPARATOR . 'general'
             . DIRECTORY_SEPARATOR . 'version.php';
 
-        if (! is_file($versionFile)) {
-            return null;
+        $content = file_get_contents($versionFile);
+        if ($content !== false && preg_match('/define\(\s*["\']SM_VERSION["\']\s*,\s*["\']([^"\']+)["\']\s*\)/', $content, $matches)) {
+            return $matches[1];
         }
 
-        include $versionFile;
-
-        return defined('SM_VERSION') ? (string) constant('SM_VERSION') : null;
+        return null;
     }
 
     /**
@@ -71,7 +70,7 @@ final class InstalledCore
     {
         foreach (['cache', 'managed_cache', 'stack_cache', 'tmp'] as $dir) {
             $path = $bitrixRoot . DIRECTORY_SEPARATOR . $dir;
-            if (! is_dir($path)) {
+            if (!is_dir($path)) {
                 mkdir($path, 0777, true);
             }
         }

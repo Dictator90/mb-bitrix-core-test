@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace MB\BitrixTest\Database;
 
 /**
- * Фабрика конфигурации и короткий вход для {@see SqlLiteConnection} (подключение к пулу Bitrix или прямое создание).
+ * Фабрика конфигурации и короткий вход для {@see SqliteConnection} (подключение к пулу Bitrix или прямое создание).
  */
-final class SqlLite
+final class Sqlite
 {
     /**
      * Конфигурация для {@see \Bitrix\Main\Data\ConnectionPool} / {@code .settings.php}: {@code className}, {@code database} и т.д.
@@ -18,7 +18,7 @@ final class SqlLite
     public static function configuration(string $database = ':memory:', array $extra = []): array
     {
         return array_merge([
-            'className' => SqlLiteConnection::class,
+            'className' => SqliteConnection::class,
             'database' => $database,
             'host' => '',
             'login' => '',
@@ -29,8 +29,8 @@ final class SqlLite
     /**
      * @param array<string, mixed> $extra
      */
-    public static function connect(string $database = ':memory:', array $extra = []): SqlLiteConnection
+    public static function connect(string $database = ':memory:', array $extra = []): SqliteConnection
     {
-        return new SqlLiteConnection(self::configuration($database, $extra));
+        return new SqliteConnection(self::configuration($database, $extra));
     }
 }

@@ -25,7 +25,7 @@ use PDOStatement;
  *
  * @method PDO getResource()
  */
-class SqlLiteConnection extends Connection
+class SqliteConnection extends Connection
 {
     protected int $transactionLevel = 0;
 
@@ -63,6 +63,7 @@ class SqlLiteConnection extends Connection
                 $pattern = (string) $pattern;
                 $value = $value === null ? '' : (string) $value;
                 set_error_handler(static fn (): bool => true);
+
                 try {
                     return @preg_match($pattern, $value) === 1 ? 1 : 0;
                 } finally {
@@ -78,6 +79,7 @@ class SqlLiteConnection extends Connection
             1
         );
 
+        // @phpstan-ignore-next-line
         $this->resource = $pdo;
         $this->isConnected = true;
 
@@ -91,12 +93,14 @@ class SqlLiteConnection extends Connection
         }
 
         $this->isConnected = false;
+        $this->lastQueryResult = null;
+        // @phpstan-ignore-next-line
         $this->resource = null;
     }
 
-    protected function createSqlHelper(): SqlLiteSqlHelper
+    protected function createSqlHelper(): SqliteSqlHelper
     {
-        return new SqlLiteSqlHelper($this);
+        return new SqliteSqlHelper($this);
     }
 
     protected function queryInternal($sql, ?array $binds = null, ?SqlTrackerQuery $trackerQuery = null)
@@ -111,6 +115,7 @@ class SqlLiteConnection extends Connection
             $statement = $pdo->query($sql);
         } catch (PDOException $e) {
             $trackerQuery?->finishQuery();
+
             throw $this->createQueryException($e->getCode(), $e->getMessage(), $sql);
         }
 
@@ -122,12 +127,14 @@ class SqlLiteConnection extends Connection
             $this->lastRowsAffected = max(0, $statement->rowCount());
         }
 
+        // @phpstan-ignore-next-line
         return $statement;
     }
 
-    protected function createResult($result, ?SqlTrackerQuery $trackerQuery = null): SqlLiteResult
+    protected function createResult($result, ?SqlTrackerQuery $trackerQuery = null): SqliteResult
     {
-        return new SqlLiteResult($result, $this, $trackerQuery);
+        // @phpstan-ignore-next-line
+        return new SqliteResult($result, $this, $trackerQuery);
     }
 
     /**
@@ -257,9 +264,11 @@ class SqlLiteConnection extends Connection
                     switch ($field->getSize()) {
                         case 2:
                             $type = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+
                             break;
                         case 8:
                             $type = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+
                             break;
                     }
                 }

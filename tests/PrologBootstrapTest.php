@@ -6,8 +6,8 @@ namespace MB\BitrixTest\Tests;
 
 use Bitrix\Main\Result;
 use MB\BitrixTest\Bootstrap\PrologBootstrap;
-use MB\BitrixTest\Database\SqlLite;
-use MB\BitrixTest\Database\SqlLiteConnection;
+use MB\BitrixTest\Database\Sqlite;
+use MB\BitrixTest\Database\SqliteConnection;
 use MB\BitrixTest\Install\InstalledCore;
 use PHPUnit\Framework\TestCase;
 
@@ -25,10 +25,10 @@ final class PrologBootstrapTest extends TestCase
         $this->assertTrue(class_exists(Result::class, false));
     }
 
-    public function testSqlLiteConfigurationForBitrixPool(): void
+    public function testSqliteConfigurationForBitrixPool(): void
     {
-        $config = SqlLite::configuration(':memory:');
-        $this->assertSame(SqlLiteConnection::class, $config['className']);
+        $config = Sqlite::configuration(':memory:');
+        $this->assertSame(SqliteConnection::class, $config['className']);
         $this->assertSame(':memory:', $config['database']);
     }
 

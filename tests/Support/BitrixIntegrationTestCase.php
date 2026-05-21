@@ -8,7 +8,6 @@ use Bitrix\Main\Loader;
 use Bitrix\Main\ModuleManager;
 use MB\BitrixTest\Bootstrap\PrologBootstrap;
 use MB\BitrixTest\Install\InstalledCore;
-use MB\BitrixTest\Runtime\DocrootFactory;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -20,13 +19,15 @@ abstract class BitrixIntegrationTestCase extends TestCase
 
     private static int $bootstrapRefCount = 0;
 
+    private static bool $isBooted = false;
+
     public static function setUpBeforeClass(): void
     {
-        if (! is_dir(InstalledCore::path() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'iblock')) {
+        if (!is_dir(InstalledCore::path() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'iblock')) {
             self::markTestSkipped('Bitrix core with iblock module is not installed');
         }
 
-        if (self::$bootstrapRefCount === 0) {
+        if (!self::$isBooted) {
             PrologBootstrap::reset();
             putenv('BITRIX_BOOTSTRAP_MODE=full');
             putenv('BITRIX_USE_SQLITE=1');
@@ -46,6 +47,7 @@ abstract class BitrixIntegrationTestCase extends TestCase
             ]);
 
             self::resetModuleManagerCache();
+            self::$isBooted = true;
         }
 
         self::$bootstrapRefCount++;
@@ -53,26 +55,7 @@ abstract class BitrixIntegrationTestCase extends TestCase
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$bootstrapRefCount <= 0) {
-            return;
-        }
-
         self::$bootstrapRefCount--;
-        if (self::$bootstrapRefCount > 0) {
-            return;
-        }
-
-        if (class_exists(\Bitrix\Main\Application::class, false)) {
-            $connection = \Bitrix\Main\Application::getInstance()->getConnection();
-            if ($connection->isConnected()) {
-                $connection->disconnect();
-            }
-        }
-
-        PrologBootstrap::reset();
-        if (isset(self::$runtimeRoot)) {
-            DocrootFactory::unlinkRuntime(self::$runtimeRoot);
-        }
     }
 
     protected function assertModuleLoads(string $moduleId, string $expectedClass): void

@@ -14,12 +14,12 @@ final class EditionRegistry
     public static function all(string $packageRoot): array
     {
         $path = $packageRoot . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'editions.json';
-        if (! is_file($path)) {
+        if (!is_file($path)) {
             throw new RuntimeException('editions.json not found at ' . $path);
         }
 
         $data = json_decode((string) file_get_contents($path), true);
-        if (! is_array($data)) {
+        if (!is_array($data)) {
             throw new RuntimeException('Invalid editions.json');
         }
 
@@ -32,14 +32,14 @@ final class EditionRegistry
     public static function get(string $packageRoot, string $edition): array
     {
         $all = self::all($packageRoot);
-        if (! isset($all[$edition]) || ! is_array($all[$edition])) {
+        if (!isset($all[$edition]) || !is_array($all[$edition])) {
             throw new RuntimeException(
                 'Unknown Bitrix edition "' . $edition . '". Available: ' . implode(', ', array_keys($all))
             );
         }
 
         $entry = $all[$edition];
-        if (! is_string($entry['url'] ?? null)) {
+        if (!is_string($entry['url'] ?? null)) {
             throw new RuntimeException('Edition "' . $edition . '" has no url');
         }
 

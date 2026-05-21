@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace MB\BitrixTest\Install;
 
+use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use FilesystemIterator;
 
 final class CoreFilter
 {
@@ -43,7 +43,7 @@ final class CoreFilter
 
         foreach (self::EMPTY_RUNTIME_DIRS as $dir) {
             $path = $bitrixRoot . DIRECTORY_SEPARATOR . $dir;
-            if (! is_dir($path)) {
+            if (!is_dir($path)) {
                 mkdir($path, 0777, true);
             }
         }
@@ -51,7 +51,7 @@ final class CoreFilter
 
     public static function copyFiltered(string $source, string $destination): void
     {
-        if (! is_dir($source)) {
+        if (!is_dir($source)) {
             throw new \RuntimeException('Source Bitrix core not found: ' . $source);
         }
 
@@ -84,12 +84,12 @@ final class CoreFilter
 
             $target = $destination . DIRECTORY_SEPARATOR . $relative;
             if ($item->isDir()) {
-                if (! is_dir($target)) {
+                if (!is_dir($target)) {
                     mkdir($target, 0777, true);
                 }
             } else {
                 $parent = dirname($target);
-                if (! is_dir($parent)) {
+                if (!is_dir($parent)) {
                     mkdir($parent, 0777, true);
                 }
                 copy($item->getPathname(), $target);
@@ -99,13 +99,14 @@ final class CoreFilter
 
     public static function removeDirectory(string $path): void
     {
-        if (! is_dir($path)) {
+        if (!is_dir($path)) {
             return;
         }
 
         if (DIRECTORY_SEPARATOR === '\\') {
             exec('cmd /c rmdir /s /q ' . escapeshellarg(str_replace('/', '\\', $path)), $output, $code);
-            if (! is_dir($path)) {
+            // @phpstan-ignore-next-line
+            if (!is_dir($path)) {
                 return;
             }
         }

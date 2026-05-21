@@ -11,11 +11,11 @@ use Bitrix\Main\ORM\Fields\ScalarField;
 use Bitrix\Main\Type;
 
 /**
- * SQL-хелпер для {@see SqlLiteConnection} (по мотивам {@see \Bitrix\Main\DB\PgsqlSqlHelper} / {@see \Bitrix\Main\DB\MysqliSqlHelper}).
+ * SQL-хелпер для {@see SqliteConnection} (по мотивам {@see \Bitrix\Main\DB\PgsqlSqlHelper} / {@see \Bitrix\Main\DB\MysqliSqlHelper}).
  *
- * @property SqlLiteConnection $connection
+ * @property SqliteConnection $connection
  */
-class SqlLiteSqlHelper extends SqlHelper
+class SqliteSqlHelper extends SqlHelper
 {
     public const FULLTEXT_MAXIMUM_LENGTH = 1000000;
 
@@ -48,7 +48,7 @@ class SqlLiteSqlHelper extends SqlHelper
     {
         if ($value === null || $value === false) {
             $value = '';
-        } elseif (! is_string($value)) {
+        } elseif (!is_string($value)) {
             $value = (string) $value;
         }
 
@@ -77,11 +77,12 @@ class SqlLiteSqlHelper extends SqlHelper
             $tableFields = array_change_key_case($this->connection->getTableFields($tableName), CASE_UPPER);
 
             foreach ($expressions as $columnName => $expression) {
-                if (! isset($tableFields[$columnName])) {
+                if (!isset($tableFields[$columnName])) {
                     trigger_error(
                         "Column `{$columnName}` is not found in the `{$tableName}` table",
                         E_USER_WARNING
                     );
+
                     continue;
                 }
 
@@ -108,11 +109,12 @@ class SqlLiteSqlHelper extends SqlHelper
             $parts = $update !== '' ? [$update] : [];
 
             foreach ($expressions as $columnName => $expression) {
-                if (! isset($tableFields[$columnName])) {
+                if (!isset($tableFields[$columnName])) {
                     trigger_error(
                         "Column `{$columnName}` is not found in the `{$tableName}` table",
                         E_USER_WARNING
                     );
+
                     continue;
                 }
 
@@ -137,6 +139,7 @@ class SqlLiteSqlHelper extends SqlHelper
             $name = (string) $columnName;
             if ($name !== '' && $name[0] === '~') {
                 $expressions[strtoupper(substr($name, 1))] = $value;
+
                 continue;
             }
 
@@ -291,12 +294,15 @@ class SqlLiteSqlHelper extends SqlHelper
         return "strftime('%Y-%m-%d %H:%M:%S', " . $fieldName . ')';
     }
 
+    // @phpstan-ignore-next-line
     public function getConverter(ScalarField $field)
     {
         if ($field instanceof ORM\Fields\DatetimeField) {
+            // @phpstan-ignore-next-line
             return [$this, 'convertFromDbDateTime'];
         }
         if ($field instanceof ORM\Fields\DateField) {
+            // @phpstan-ignore-next-line
             return [$this, 'convertFromDbDate'];
         }
 
@@ -309,6 +315,7 @@ class SqlLiteSqlHelper extends SqlHelper
             return new Type\DateTime($value, 'Y-m-d H:i:s');
         }
 
+        // @phpstan-ignore-next-line
         return null;
     }
 
@@ -318,6 +325,7 @@ class SqlLiteSqlHelper extends SqlHelper
             return new Type\Date($value, 'Y-m-d');
         }
 
+        // @phpstan-ignore-next-line
         return null;
     }
 
@@ -405,22 +413,27 @@ class SqlLiteSqlHelper extends SqlHelper
             case 'smallint':
             case 'tinyint':
                 $field = (new ORM\Fields\IntegerField($name))->configureSize(8);
+
                 break;
             case 'real':
             case 'float':
             case 'double':
             case 'numeric':
                 $field = new ORM\Fields\FloatField($name);
+
                 break;
             case 'blob':
                 $field = new ORM\Fields\StringField($name, ['binary' => true]);
+
                 break;
             case 'timestamp':
             case 'datetime':
                 $field = new ORM\Fields\DatetimeField($name);
+
                 break;
             case 'date':
                 $field = new ORM\Fields\DateField($name);
+
                 break;
             default:
                 $field = new ORM\Fields\StringField($name);

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-if (! defined('SITEEXPIREDATE')) {
+if (!defined('SITEEXPIREDATE')) {
     define('SITEEXPIREDATE', '2099-12-31');
 }
-if (! defined('OLDSITEEXPIREDATE')) {
+if (!defined('OLDSITEEXPIREDATE')) {
     define('OLDSITEEXPIREDATE', '2099-12-31');
 }
 

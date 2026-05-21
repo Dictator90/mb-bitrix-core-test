@@ -20,7 +20,7 @@ final class DocrootFactory
         $phpInterfaceDir = $localDir . DIRECTORY_SEPARATOR . 'php_interface';
 
         foreach ([$runtimeRoot, $localDir, $phpInterfaceDir, $runtimeRoot . DIRECTORY_SEPARATOR . 'upload', $runtimeRoot . DIRECTORY_SEPARATOR . 'sqlite'] as $dir) {
-            if (! is_dir($dir)) {
+            if (!is_dir($dir)) {
                 mkdir($dir, 0777, true);
             }
         }
@@ -29,7 +29,7 @@ final class DocrootFactory
 
         foreach (['cache', 'managed_cache', 'stack_cache', 'tmp'] as $dir) {
             $path = $bitrixLink . DIRECTORY_SEPARATOR . $dir;
-            if (! is_dir($path)) {
+            if (!is_dir($path)) {
                 mkdir($path, 0777, true);
             }
         }
@@ -49,7 +49,7 @@ final class DocrootFactory
             throw new \RuntimeException('Bitrix core path not found: ' . $corePath);
         }
 
-        if (! CorePathGuard::isInsidePackage($coreReal)) {
+        if (!CorePathGuard::isInsidePackage($coreReal)) {
             self::copyCoreIntoRuntime($coreReal, $bitrixLink);
 
             return;
@@ -95,7 +95,7 @@ final class DocrootFactory
 
     public static function unlinkRuntime(string $runtimeRoot): void
     {
-        if (! is_dir($runtimeRoot)) {
+        if (!is_dir($runtimeRoot)) {
             return;
         }
 

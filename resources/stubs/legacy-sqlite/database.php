@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Legacy CDatabase for D7 SqlLiteConnection (loaded via registerAutoload type "sqlite").
+ * Legacy CDatabase for D7 SqliteConnection (loaded via registerAutoload type "sqlite").
  */
 
 require_once __DIR__ . '/../general/database.php';

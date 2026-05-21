@@ -8,12 +8,12 @@ final class EpilogBootstrap
 {
     public static function shutdown(): void
     {
-        if (! defined('B_PROLOG_INCLUDED')) {
+        if (!defined('B_PROLOG_INCLUDED')) {
             return;
         }
 
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? null;
-        if (! is_string($documentRoot) || $documentRoot === '') {
+        if (!is_string($documentRoot) || $documentRoot === '') {
             return;
         }
 

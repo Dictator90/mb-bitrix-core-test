@@ -13,7 +13,7 @@ use PDOStatement;
 /**
  * Результат запроса SQLite: строки буферизуются, чтобы корректно работали {@see Result::getSelectedRowsCount()} и повторные обходы.
  */
-class SqlLiteResult extends Result
+class SqliteResult extends Result
 {
     /** @var list<array<string, mixed>> */
     private array $rows = [];
@@ -43,6 +43,7 @@ class SqlLiteResult extends Result
             $result = $this->rows;
         }
 
+        // @phpstan-ignore-next-line
         parent::__construct($result, $dbConnection, $trackerQuery);
     }
 
@@ -60,6 +61,7 @@ class SqlLiteResult extends Result
 
     public function getSelectedRowsCount(): int
     {
+        // @phpstan-ignore-next-line
         return count($this->resource);
     }
 
@@ -70,10 +72,12 @@ class SqlLiteResult extends Result
 
     protected function fetchRowInternal(): array|false
     {
+        // @phpstan-ignore-next-line
         $val = current($this->resource);
         if ($val === false) {
             return false;
         }
+        // @phpstan-ignore-next-line
         next($this->resource);
 
         return $val;

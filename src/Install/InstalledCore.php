@@ -16,7 +16,7 @@ final class InstalledCore
 
         if (!is_dir($path . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'main')) {
             throw new RuntimeException(
-                'Bitrix core is not installed. Run: composer bitrix-core:install'
+                'Bitrix core is not installed. Run: vendor/bin/bitrix-core-test install'
             );
         }
 

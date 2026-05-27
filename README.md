@@ -79,6 +79,7 @@ phpunit --testsuite Integration --bootstrap tests/bootstrap.php
 - [05-eshop-demo-xml.md](recipes/05-eshop-demo-xml.md)
 - [06-generate-sqlite-dumps.md](recipes/06-generate-sqlite-dumps.md)
 - [07-troubleshooting.md](recipes/07-troubleshooting.md)
+- [08-custom-sql-dump.md](recipes/08-custom-sql-dump.md)
 
 ## Лицензия Bitrix
 

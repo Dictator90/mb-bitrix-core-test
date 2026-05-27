@@ -39,3 +39,15 @@ interface DatabaseBackendInterface
 ```
 
 Register your backend in `DatabaseBackendResolver`.
+
+## Custom SQL dumps
+
+- **SQLite** loads the bundled schema and any extra files you pass via
+  `BITRIX_SQLITE_EXTRA_SQL` / `sqlite_extra_sql_files` (SQLite dialect only).
+- **MySQL** does not load schema itself (`MysqlBackend::initializeSchema()` is a
+  no-op) — prepare the database externally (e.g. `mysql db < dump.sql`) and the
+  backend just connects via `BITRIX_DB_HOST` / `BITRIX_DB_NAME` /
+  `BITRIX_DB_LOGIN` / `BITRIX_DB_PASSWORD`. A native Bitrix MySQL dump works
+  as-is, with no MySQL→SQLite conversion concerns.
+
+See `recipes/08-custom-sql-dump.md` for full details.

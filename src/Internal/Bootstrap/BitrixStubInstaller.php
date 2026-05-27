@@ -56,11 +56,14 @@ final class BitrixStubInstaller
             mkdir($legacyDir, 0777, true);
         }
 
-        $stubSource = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'resources'
-            . DIRECTORY_SEPARATOR . 'stubs' . DIRECTORY_SEPARATOR . 'legacy-sqlite' . DIRECTORY_SEPARATOR . 'database.php';
-        $target = $legacyDir . DIRECTORY_SEPARATOR . 'database.php';
-        if (is_file($stubSource)) {
-            copy($stubSource, $target);
+        $stubDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'resources'
+            . DIRECTORY_SEPARATOR . 'stubs' . DIRECTORY_SEPARATOR . 'legacy-sqlite';
+
+        foreach (['database.php', 'dbresult.php'] as $stubFile) {
+            $stubSource = $stubDir . DIRECTORY_SEPARATOR . $stubFile;
+            if (is_file($stubSource)) {
+                copy($stubSource, $legacyDir . DIRECTORY_SEPARATOR . $stubFile);
+            }
         }
     }
 }

@@ -6,9 +6,8 @@ parameters:
     excludePaths:
         - bitrix/*
         - vendor/*
-    scanDirectories:
-        - bitrix/modules
     bootstrapFiles:
         - tests/phpstan-bootstrap.php
     treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
 

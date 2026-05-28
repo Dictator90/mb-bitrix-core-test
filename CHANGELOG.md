@@ -6,6 +6,7 @@
 - Fix `b_option` schema (PRIMARY KEY `MODULE_ID, NAME` + nullable `SITE_ID`) and add `b_option_site` / `b_user_option` tables to the SQLite dumps.
 - Remove obsolete `sqlite-minimal.sql` and the `dump-sql-chunks` dev script.
 - Document custom SQL dumps for SQLite (extra SQL) and MySQL (external DB) — see `recipes/08-custom-sql-dump.md`.
+- Make `composer analyse` (PHPStan) pass without the Bitrix core downloaded: add `stubs/bitrix-stubs.php` (loaded via the PHPStan bootstrap) for the core API used by the package, and drop the hard `scanDirectories: bitrix/modules` requirement that crashed on a missing core.
 - Initial package: CoreInstaller (download / bundled / local), bootstrap prolog/epilog, SQLite minimal schema, PHPUnit smoke tests.
 - SQLite D7 driver copied into package (`MB\BitrixTest\Database\Sqlite*`), no dependency on `mb4it/bitrix-support`.
 - Official editions: `start`, `standard`, `small_business`, `business` (1c-bitrix.ru encode tar.gz).

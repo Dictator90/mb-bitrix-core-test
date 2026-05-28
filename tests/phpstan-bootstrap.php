@@ -12,6 +12,12 @@ if (!defined('OLDSITEEXPIREDATE')) {
     define('OLDSITEEXPIREDATE', '2099-12-31');
 }
 
+// Minimal stub definitions for the subset of the Bitrix core API used by this
+// package, so `composer analyse` works without the (proprietary, ~400MB) core
+// downloaded into bitrix/. Loaded here (before the autoloader below) where no
+// Bitrix class is loaded yet; a real core, autoloaded lazily, is never redeclared.
+require_once dirname(__DIR__) . '/stubs/bitrix-stubs.php';
+
 // Custom autoloader to load Bitrix classes from the installed Bitrix core during static analysis.
 spl_autoload_register(function (string $className): void {
     if (!str_starts_with($className, 'Bitrix\\')) {
